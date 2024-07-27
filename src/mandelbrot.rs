@@ -1,28 +1,28 @@
-use num::{complex::{self, ComplexFloat}, Complex};
+use num::{
+    complex::{self, ComplexFloat},
+    Complex,
+};
 
 #[inline]
 fn iterate_mandelbrot(last_n: Complex<f32>, constant: Complex<f32>) -> Complex<f32> {
     last_n * last_n + constant
 }
 
-/// A constant is in the set if it does NOT escape to infinity
-pub fn is_in_set(constant: Complex<f32>) -> bool {
+pub fn is_in_set(constant: Complex<f32>) -> (bool, usize) {
     let mut start = Complex::new(0.0, 0.0);
-    for _ in 0..10 {
+    for i in 0..100 {
         start = iterate_mandelbrot(start, constant);
         if start.norm_sqr() > 4.0 {
-            return false;
+            return (false, i);
         }
     }
-    true
+    (true, 10)
 }
-
 
 #[cfg(test)]
 mod tests {
-    use num::Complex;
     use super::*;
-
+    use num::Complex;
 
     #[test]
     fn test_mandelbrot_iteration() {
@@ -53,5 +53,4 @@ mod tests {
             num.im = start_fp;
         }
     }
-
 }
