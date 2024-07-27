@@ -2,22 +2,19 @@ use num::{complex::{self, ComplexFloat}, Complex};
 
 #[inline]
 fn iterate_mandelbrot(last_n: Complex<f32>, constant: Complex<f32>) -> Complex<f32> {
-    last_n*last_n + constant
+    last_n * last_n + constant
 }
 
 /// A constant is in the set if it does NOT escape to infinity
 pub fn is_in_set(constant: Complex<f32>) -> bool {
     let mut start = Complex::new(0.0, 0.0);
-    // 10 iterations to test for cicle
     for _ in 0..10 {
-        let next = iterate_mandelbrot(start, constant);
-        // println!("last: {:?} | next: {:?}", start, next);
-        if next.norm() < start.norm() {
-            return true;
+        start = iterate_mandelbrot(start, constant);
+        if start.norm_sqr() > 4.0 {
+            return false;
         }
-        start = next;
     }
-    return false;
+    true
 }
 
 
