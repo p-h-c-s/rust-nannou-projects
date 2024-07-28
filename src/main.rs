@@ -1,8 +1,7 @@
 use nannou::color::DARKBLUE;
 use nannou::event::Event;
-use nannou::image::{DynamicImage, GenericImageView, RgbImage, Rgba};
+use nannou::image::{DynamicImage, GenericImageView, Rgba};
 use nannou::prelude::*;
-use nannou::winit::event::{Touch, TouchPhase};
 use num::Complex;
 
 pub mod mandelbrot;
@@ -12,23 +11,47 @@ fn main() {
 }
 
 // boundaries of the complex plane so the set is nicely visible. Taken from https://en.wikipedia.org/wiki/Mandelbrot_set
-// These valuse represent our view of the original image plane. So the points in the image buffer are mapped to these ranges
+// These values represent our view of the original image plane. So the points in the image buffer are mapped to these ranges
 const MIN_X: f32 = -2.00;
 const MAX_X: f32 = 0.47;
 const MIN_Y: f32 = -1.12;
 const MAX_Y: f32 = 1.12;
+const MAX_ITER: usize = 50;
 
 struct Model {
-    window: WindowId,
+    _window: WindowId,
     image: DynamicImage,
     zoom: f64,
-    last_m_event: WindowEvent,
     center: Point2,
+}
+
+impl Model {
+    // this can be heavily optimized
+    fn render(&mut self) {
+        let width = self.image.width() as f32;
+        let height = self.image.height() as f32;
+
+        let dx = (MAX_X - MIN_X) / self.zoom as f32;
+        let dy = (MAX_Y - MIN_Y) / self.zoom as f32;
+
+        // Centers the new view in the existing center point
+        let min_x = self.center.x - dx / 2.0;
+        let max_x = self.center.x + dx / 2.0;
+        let min_y = self.center.y - dy / 2.0;
+        let max_y = self.center.y + dy / 2.0;
+
+        for (x, y, pixel) in self.image.as_mut_rgb8().unwrap().enumerate_pixels_mut() {
+            let fx = map_range(x as f32, 0.0, width, min_x, max_x);
+            let fy = map_range(y as f32, 0.0, height, min_y, max_y);
+            let color = mandelbrot_color_mapping(fx, fy);
+            *pixel = nannou::image::Rgb([color.0[0], color.0[1], color.0[2]]);
+        }
+    }
 }
 
 fn model(app: &App) -> Model {
     app.set_loop_mode(LoopMode::wait());
-    let window = app
+    let _window = app
         .new_window()
         .size(1000, 1000)
         .view(view)
@@ -38,13 +61,12 @@ fn model(app: &App) -> Model {
     // The dimensions here define the resolution of the image. Higher = more expensive rendering
     let image = DynamicImage::new_rgb8(800, 800);
     let mut model = Model {
-        window,
+        _window,
         image,
         zoom: 1.0,
-        last_m_event: WindowEvent::Focused,
         center: Point2::new((MIN_X + MAX_X) / 2.0, (MIN_Y + MAX_Y) / 2.0),
     };
-    render(app, &mut model);
+    model.render();
     model
 }
 
@@ -89,38 +111,16 @@ fn event(app: &App, model: &mut Model, event: Event) {
                         MouseButton::Right => model.zoom /= 2.0, // Zoom out
                         _ => {}
                     }
-
-                    render(app, model);
+                    model.render();
                 }
                 _ => {}
             }
-            model.last_m_event = w_event;
         }
         _ => {}
     }
 }
 
-// this can be heavily optimized
-fn render(app: &App, model: &mut Model) {
-    let width = model.image.width() as f32;
-    let height = model.image.height() as f32;
 
-    let dx = (MAX_X - MIN_X) / model.zoom as f32;
-    let dy = (MAX_Y - MIN_Y) / model.zoom as f32;
-
-    // Centers the new view in the existing center point
-    let min_x = model.center.x - dx / 2.0;
-    let max_x = model.center.x + dx / 2.0;
-    let min_y = model.center.y - dy / 2.0;
-    let max_y = model.center.y + dy / 2.0;
-
-    for (x, y, pixel) in model.image.as_mut_rgb8().unwrap().enumerate_pixels_mut() {
-        let fx = map_range(x as f32, 0.0, width, min_x, max_x);
-        let fy = map_range(y as f32, 0.0, height, min_y, max_y);
-        let color = mandelbrot_color_mapping(fx, fy);
-        *pixel = nannou::image::Rgb([color.0[0], color.0[1], color.0[2]]);
-    }
-}
 
 fn mandelbrot_color_mapping(x: f32, y: f32) -> Rgba<u8> {
     match mandelbrot::is_in_set(Complex::new(x, y)) {
@@ -130,7 +130,7 @@ fn mandelbrot_color_mapping(x: f32, y: f32) -> Rgba<u8> {
         (false, it) => {
             let r = 0;
             let g = 0;
-            let b = map_range(it, 0, 50, 128.0, 255.0) as u8;
+            let b = map_range(it, 0, MAX_ITER, 156.0, 255.0) as u8;
             return Rgba([r, g, b, 255]);
         }
     }
