@@ -130,7 +130,7 @@ fn mandelbrot_color_mapping(x: f32, y: f32) -> Rgba<u8> {
         (false, it) => {
             let r = 0;
             let g = 0;
-            let b = (map_range(it as f32, MIN_X, MAX_X, 64.0, 255.0) as u8);
+            let b = map_range(it, 0, 50, 128.0, 255.0) as u8;
             return Rgba([r, g, b, 255]);
         }
     }
