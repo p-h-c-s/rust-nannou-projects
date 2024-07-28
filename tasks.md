@@ -19,3 +19,6 @@ Iterator cheat-sheet:
 iter(), which iterates over &T.
 iter_mut(), which iterates over &mut T.
 into_iter(), which iterates over T.
+
+
+https://www.karlsims.com/julia.html

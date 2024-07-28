@@ -5,6 +5,7 @@ use nannou::prelude::*;
 use num::Complex;
 
 pub mod mandelbrot;
+pub mod fractal_colouring;
 
 fn main() {
     nannou::app(model).event(event).run();
@@ -29,6 +30,7 @@ struct Model {
     image: DynamicImage,
     zoom: f64,
     center: DVec2, // f64 equivalent to Point2
+    colors: [(u8, u8, u8); fractal_colouring::ARRAY_SIZE]
 }
 
 impl Model {
@@ -49,7 +51,7 @@ impl Model {
         for (x, y, pixel) in self.image.as_mut_rgb8().unwrap().enumerate_pixels_mut() {
             let fx = map_range(x as f64, 0.0, width, min_x, max_x);
             let fy = map_range(y as f64, 0.0, height, min_y, max_y);
-            let color = mandelbrot_color_mapping(fx, fy);
+            let color = mandelbrot_color_mapping(fx, fy, &self.colors);
             *pixel = nannou::image::Rgb([color.0[0], color.0[1], color.0[2]]);
         }
     }
@@ -70,6 +72,7 @@ fn model(app: &App) -> Model {
         image,
         zoom: 1.0,
         center: DVec2::new((MIN_X + MAX_X) / 2.0, (MIN_Y + MAX_Y) / 2.0),
+        colors: fractal_colouring::interpolate_colors()
     };
     model.render();
     model
@@ -125,15 +128,22 @@ fn event(app: &App, model: &mut Model, event: Event) {
     }
 }
 
-fn mandelbrot_color_mapping(x: f64, y: f64) -> Rgba<u8> {
+fn mandelbrot_color_mapping(x: f64, y: f64, colors: &[(u8, u8, u8)]) -> Rgba<u8> {
     match mandelbrot::is_in_set(Complex::new(x, y)) {
         (true, _) => {
             return Rgba([0, 0, 0, 255]);
         }
         (false, it) => {
-            let r = 0;
-            let g = 0;
-            let b = map_range(it, 0, MAX_ITER, 156.0, 255.0) as u8;
+            // if it <= 10 {
+            //     let r = 0;
+            //     let g = map_range(it, 0, 10, 156.0, 255.0) as u8;
+            //     let b = 0;
+            //     return Rgba([r, g, b, 255]);
+            // }
+            // let r = 0;
+            // let g = 0;
+            // let b = map_range(it, 0, 50, 156.0, 255.0) as u8;
+            let (r, g, b) = fractal_colouring::get_interpolated_color(colors, it);
             return Rgba([r, g, b, 255]);
         }
     }
