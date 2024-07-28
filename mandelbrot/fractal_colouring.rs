@@ -109,8 +109,8 @@ pub fn create_color_array() -> Vec<Rgba<u8>> {
 /// Inspired by: https://stackoverflow.com/questions/16500656/which-color-gradient-is-used-to-color-mandelbrot-in-wikipedia
 #[inline]
 pub fn get_interpolated_color(colors: &Vec<Rgba<u8>>, iterations: usize, z: Complex<f64>) -> Rgba<u8> {
-    let l2: f64 = 2.0;
-    let smoothed = iterations as f64 + 1.0 - z.abs().log10().log10()/(l2.log10());
-    let idx = ((smoothed) * 256.0) % 2048.0;
-    colors[idx as usize]
+    let scale_factor = 128.0;
+    let potential = iterations as f64 - z.norm().ln().ln() / 2.0_f64.ln();
+    let index = (potential * scale_factor) % colors.len() as f64;
+    colors[index as usize]
 }
