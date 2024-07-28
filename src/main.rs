@@ -10,8 +10,8 @@ fn main() {
     nannou::app(model).event(event).run();
 }
 
-// boundaries of the complex plane so the set is nicely visible. Taken from https://en.wikipedia.org/wiki/Mandelbrot_set
-// These values represent our view of the original image plane. So the points in the image buffer are mapped to these ranges
+/// boundaries of the complex plane so the set is nicely visible. Taken from https://en.wikipedia.org/wiki/Mandelbrot_set
+/// These values represent our view of the original image plane. So the points in the image buffer are mapped to these ranges
 const MIN_X: f64 = -2.00;
 const MAX_X: f64 = 0.47;
 const MIN_Y: f64 = -1.12;
@@ -20,7 +20,7 @@ const MAX_Y: f64 = 1.12;
 /// Quality x Performance settings.
 /// MAX_ITER defines the amount of computation to be done per point to assess set belonging.
 /// IMAGE_RESOLUTION defines the number of pixels in the x and y direction of the rendered image.
-/// Low values of MAX_ITER creates a less detailed fractals
+/// Low values of MAX_ITER creates less detailed fractals
 const MAX_ITER: usize = 150;
 const IMAGE_RESOLUTION: (u32, u32) = (480, 480);
 
@@ -32,7 +32,7 @@ struct Model {
 }
 
 impl Model {
-    // this can be heavily optimized
+    // this can be heavily parallelized if we split the image into chunks
     fn render(&mut self) {
         let width = self.image.width() as f64;
         let height = self.image.height() as f64;
@@ -64,7 +64,6 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    // The dimensions here define the resolution of the image. Higher = more expensive rendering
     let image = DynamicImage::new_rgb8(IMAGE_RESOLUTION.0, IMAGE_RESOLUTION.1);
     let mut model = Model {
         _window,
@@ -125,8 +124,6 @@ fn event(app: &App, model: &mut Model, event: Event) {
         _ => {}
     }
 }
-
-
 
 fn mandelbrot_color_mapping(x: f64, y: f64) -> Rgba<u8> {
     match mandelbrot::is_in_set(Complex::new(x, y)) {
