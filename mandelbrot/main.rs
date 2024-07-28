@@ -4,8 +4,8 @@ use nannou::image::{DynamicImage, GenericImageView, Rgba};
 use nannou::prelude::*;
 use num::Complex;
 
-pub mod mandelbrot;
 pub mod fractal_colouring;
+pub mod mandelbrot;
 
 fn main() {
     nannou::app(model).event(event).run();
@@ -30,7 +30,7 @@ struct Model {
     image: DynamicImage,
     zoom: f64,
     center: DVec2, // f64 equivalent to Point2
-    colors: Vec<Rgba<u8>>
+    colors: Vec<Rgba<u8>>,
 }
 
 impl Model {
@@ -72,7 +72,7 @@ fn model(app: &App) -> Model {
         image,
         zoom: 1.0,
         center: DVec2::new((MIN_X + MAX_X) / 2.0, (MIN_Y + MAX_Y) / 2.0),
-        colors: fractal_colouring::create_color_array()
+        colors: fractal_colouring::create_color_array(),
     };
     model.render();
     model
@@ -130,13 +130,8 @@ fn event(app: &App, model: &mut Model, event: Event) {
 
 fn mandelbrot_color_mapping(x: f64, y: f64, colors: &Vec<Rgba<u8>>) -> Rgba<u8> {
     match mandelbrot::is_in_set(Complex::new(x, y)) {
-        (true, _, _) => {
-            return Rgba([0, 0, 0, 255]);
-        }
-        (false, it, complex_n) => {
-            let rgb = fractal_colouring::get_interpolated_color(colors, it, complex_n);
-            return rgb
-        }
+        (true, _, _) => Rgba([0, 0, 0, 255]),
+        (false, it, complex_n) => fractal_colouring::get_interpolated_color(colors, it, complex_n),
     }
 }
 

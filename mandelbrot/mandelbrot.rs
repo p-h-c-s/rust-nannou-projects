@@ -1,5 +1,5 @@
-use num::Complex;
 use super::MAX_ITER;
+use num::Complex;
 
 #[inline]
 fn iterate_mandelbrot(last_n: Complex<f64>, constant: Complex<f64>) -> Complex<f64> {
@@ -14,7 +14,7 @@ pub fn is_in_set(constant: Complex<f64>) -> (bool, usize, Complex<f64>) {
             return (false, i, start);
         }
     }
-    (true, MAX_ITER-1, start)
+    (true, MAX_ITER - 1, start)
 }
 
 #[cfg(test)]

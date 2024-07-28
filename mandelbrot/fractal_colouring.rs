@@ -11,10 +11,9 @@
 // int colorI = (int)(Math.Sqrt(i + 10 - smoothed) * gradient.Scale) % colors.Length;
 // Color color = colors[colorI];
 
-
+use nannou::image::Rgba;
 use nannou::{color::float, prelude::*};
 use num::{complex::ComplexFloat, integer::Roots, Complex};
-use nannou::image::Rgba;
 
 pub const ARRAY_SIZE: usize = 2048;
 
@@ -70,7 +69,13 @@ fn calculate_slope(p0: (u8, u8, u8), p1: (u8, u8, u8), x0: f64, x1: f64) -> (f64
     )
 }
 
-fn cubic_hermite(p0: (u8, u8, u8), p1: (u8, u8, u8), m0: (f64, f64, f64), m1: (f64, f64, f64), t: f64) -> (f64, f64, f64) {
+fn cubic_hermite(
+    p0: (u8, u8, u8),
+    p1: (u8, u8, u8),
+    m0: (f64, f64, f64),
+    m1: (f64, f64, f64),
+    t: f64,
+) -> (f64, f64, f64) {
     let t2 = t * t;
     let t3 = t2 * t;
     let h00 = 2.0 * t3 - 3.0 * t2 + 1.0;
@@ -87,11 +92,26 @@ fn cubic_hermite(p0: (u8, u8, u8), p1: (u8, u8, u8), m0: (f64, f64, f64), m1: (f
 
 pub fn create_color_array() -> Vec<Rgba<u8>> {
     let control_points = vec![
-        ControlPoint { position: 0.0, color: (0, 7, 100) },
-        ControlPoint { position: 0.16, color: (32, 107, 203) },
-        ControlPoint { position: 0.42, color: (237, 255, 255) },
-        ControlPoint { position: 0.6425, color: (255, 170, 0) },
-        ControlPoint { position: 0.8575, color: (0, 2, 0) },
+        ControlPoint {
+            position: 0.0,
+            color: (0, 7, 100),
+        },
+        ControlPoint {
+            position: 0.16,
+            color: (32, 107, 203),
+        },
+        ControlPoint {
+            position: 0.42,
+            color: (237, 255, 255),
+        },
+        ControlPoint {
+            position: 0.6425,
+            color: (255, 170, 0),
+        },
+        ControlPoint {
+            position: 0.8575,
+            color: (0, 2, 0),
+        },
     ];
 
     let mut colors = Vec::with_capacity(ARRAY_SIZE);
@@ -105,10 +125,13 @@ pub fn create_color_array() -> Vec<Rgba<u8>> {
     colors
 }
 
-
 /// Inspired by: https://stackoverflow.com/questions/16500656/which-color-gradient-is-used-to-color-mandelbrot-in-wikipedia
 #[inline]
-pub fn get_interpolated_color(colors: &Vec<Rgba<u8>>, iterations: usize, z: Complex<f64>) -> Rgba<u8> {
+pub fn get_interpolated_color(
+    colors: &Vec<Rgba<u8>>,
+    iterations: usize,
+    z: Complex<f64>,
+) -> Rgba<u8> {
     let scale_factor = 24.0;
     let potential = iterations as f64 - z.norm().ln().ln() / 2.0_f64.ln();
     let index = (potential * scale_factor) % colors.len() as f64;
