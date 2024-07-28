@@ -1,7 +1,7 @@
 use nannou::color::DARKBLUE;
+use nannou::event::Event;
 use nannou::image::{DynamicImage, GenericImageView, RgbImage, Rgba};
 use nannou::prelude::*;
-use nannou::event::Event;
 use nannou::winit::event::{Touch, TouchPhase};
 use num::Complex;
 use window::MouseMovedFn;
@@ -23,13 +23,13 @@ struct Model {
     image: DynamicImage,
     zoom: f64,
     last_m_event: WindowEvent,
-    click_coords: Point2
+    center: Point2,
 }
 
 fn model(app: &App) -> Model {
     // nannou continuously tries to draw the texture from the rendered image by calling "view" for each frame
     // Wait mode only redraws when an event happens
-    app.set_loop_mode(LoopMode::wait()); 
+    app.set_loop_mode(LoopMode::wait());
     let window = app
         .new_window()
         .size(1000, 1000)
@@ -37,7 +37,13 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
     let image = DynamicImage::new_rgb8(1000, 1000); // Adjust size as needed
-    let mut model = Model { window, image, zoom: 1.0, last_m_event: WindowEvent::Focused, click_coords: Point2::new(0.0, 0.0)};
+    let mut model = Model {
+        window,
+        image,
+        zoom: 1.0,
+        last_m_event: WindowEvent::Focused,
+        center: Point2::new((MIN_X + MAX_X) / 2.0, (MIN_Y + MAX_Y) / 2.0),
+    };
     render(app, &mut model);
     model
 }
@@ -45,82 +51,56 @@ fn model(app: &App) -> Model {
 fn event(app: &App, model: &mut Model, event: Event) {
     match event {
         Event::WindowEvent { id: _, simple: Some(w_event) } => {
-            // println!("event: {:?}", _event);
             match w_event {
-                WindowEvent::MouseReleased(_) => {
-                    match model.last_m_event {
-                        WindowEvent::MouseMoved(p) => {
-                            model.zoom *= 1.1;
-                            model.click_coords = p;
-                            render(app, model);
-                        },
+                WindowEvent::MousePressed(button) => {
+                    let mouse_pos = app.mouse.position();
+                    let image_width = model.image.width() as f32;
+                    let image_height = model.image.height() as f32;
+                    
+                    // Convert mouse position to image coordinates
+                    let image_x = map_range(mouse_pos.x, -app.window_rect().w()/2.0, app.window_rect().w()/2.0, 0.0, image_width);
+                    let image_y = map_range(mouse_pos.y, -app.window_rect().h()/2.0, app.window_rect().h()/2.0, image_height, 0.0);
+                    
+                    // Convert image coordinates to complex plane coordinates
+                    let dx = (MAX_X - MIN_X) / model.zoom as f32;
+                    let dy = (MAX_Y - MIN_Y) / model.zoom as f32;
+                    let new_x = model.center.x + (image_x / image_width - 0.5) * dx;
+                    let new_y = model.center.y + (image_y / image_height - 0.5) * dy;
+                    
+                    // Update center and zoom
+                    model.center = Point2::new(new_x, new_y);
+                    match button {
+                        MouseButton::Left => model.zoom *= 2.0,  // Zoom in
+                        MouseButton::Right => model.zoom /= 2.0, // Zoom out
                         _ => {}
                     }
+                    
+                    render(app, model);
                 }
                 _ => {}
             }
-            model.last_m_event = w_event
+            model.last_m_event = w_event;
         }
         _ => {}
     }
 }
 
-fn handle_zoom(delta: MouseScrollDelta, phase: TouchPhase) -> Option<f64> {
-    // maybe only calculate if the phase is correct
-    let zoom_factor = match delta {
-        MouseScrollDelta::LineDelta(x, y) => {
-            println!("{:?} {:?}", x, y);
-            if y > 0.0 { 1.1 } else { 0.9 }
-        }
-        MouseScrollDelta::PixelDelta(pos) => {
-            println!("pixel: {:?} {:?}", pos.x, pos.y);
-            if pos.y > 0.0 { 1.1 } else { 0.9 }
-        }
-    };
-
-    println!("{:?}", phase);
-    match phase {
-        TouchPhase::Ended => {
-            Some(zoom_factor)
-        }
-        _ => {
-            // Scroll gesture was interrupted
-            None
-        }
-    }
-
-    // for ref:
-    // match phase {
-    //     TouchPhase::Started => {
-    //         // Scroll gesture has started
-    //     }
-    //     TouchPhase::Moved => {
-    //         // Scroll is in progress
-    //         model.zoom *= zoom_factor;
-    //     }
-    //     TouchPhase::Ended => {
-    //         // Scroll gesture has ended
-    //     }
-    //     TouchPhase::Cancelled => {
-    //         // Scroll gesture was interrupted
-    //     }
-    // }
-
-
-    // Flag that we need to redraw
-}
-
-
-
 // this can be heavily optimized
 fn render(app: &App, model: &mut Model) {
     let width = model.image.width() as f32;
     let height = model.image.height() as f32;
-    let z = model.zoom as f32;
+    
+    let dx = (MAX_X - MIN_X) / model.zoom as f32;
+    let dy = (MAX_Y - MIN_Y) / model.zoom as f32;
+    
+    let min_x = model.center.x - dx / 2.0;
+    let max_x = model.center.x + dx / 2.0;
+    let min_y = model.center.y - dy / 2.0;
+    let max_y = model.center.y + dy / 2.0;
 
     for (x, y, pixel) in model.image.as_mut_rgb8().unwrap().enumerate_pixels_mut() {
-        let fx: f32 = map_range(x as f32, 0.0, width, MIN_X, MAX_X) / z;
-        let fy: f32 = map_range(y as f32, 0.0, height, MIN_Y, MAX_Y) / z;
+        let fx = map_range(x as f32, 0.0, width, min_x, max_x);
+        let fy = map_range(y as f32, 0.0, height, min_y, max_y);
         let color = color_function(fx, fy);
         *pixel = nannou::image::Rgb([color.0[0], color.0[1], color.0[2]]);
     }
