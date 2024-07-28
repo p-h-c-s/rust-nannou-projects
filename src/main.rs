@@ -2,8 +2,9 @@ use nannou::color::DARKBLUE;
 use nannou::image::{DynamicImage, GenericImageView, RgbImage, Rgba};
 use nannou::prelude::*;
 use nannou::event::Event;
-use nannou::winit::event::MouseScrollDelta;
+use nannou::winit::event::{Touch, TouchPhase};
 use num::Complex;
+use window::MouseMovedFn;
 
 pub mod mandelbrot;
 
@@ -20,7 +21,9 @@ const MAX_Y: f32 = 1.12;
 struct Model {
     window: WindowId,
     image: DynamicImage,
-    zoom: f64
+    zoom: f64,
+    last_m_event: WindowEvent,
+    click_coords: Point2
 }
 
 fn model(app: &App) -> Model {
@@ -34,7 +37,7 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
     let image = DynamicImage::new_rgb8(1000, 1000); // Adjust size as needed
-    let mut model = Model { window, image, zoom: 1.5};
+    let mut model = Model { window, image, zoom: 1.0, last_m_event: WindowEvent::Focused, click_coords: Point2::new(0.0, 0.0)};
     render(app, &mut model);
     model
 }
@@ -42,13 +45,21 @@ fn model(app: &App) -> Model {
 fn event(app: &App, model: &mut Model, event: Event) {
     match event {
         Event::WindowEvent { id: _, simple: Some(w_event) } => {
-            if let WindowEvent::MouseWheel ( delta, phase, .. ) = w_event {
-                if let Some(zoom) = handle_zoom(delta, phase) {
-                    println!("{:?}", zoom);
-                    model.zoom = zoom;
+            // println!("event: {:?}", _event);
+            match w_event {
+                WindowEvent::MouseReleased(_) => {
+                    match model.last_m_event {
+                        WindowEvent::MouseMoved(p) => {
+                            model.zoom *= 1.1;
+                            model.click_coords = p;
+                            render(app, model);
+                        },
+                        _ => {}
+                    }
                 }
-                render(app, model);
+                _ => {}
             }
+            model.last_m_event = w_event
         }
         _ => {}
     }
@@ -57,16 +68,19 @@ fn event(app: &App, model: &mut Model, event: Event) {
 fn handle_zoom(delta: MouseScrollDelta, phase: TouchPhase) -> Option<f64> {
     // maybe only calculate if the phase is correct
     let zoom_factor = match delta {
-        MouseScrollDelta::LineDelta(_, y) => {
+        MouseScrollDelta::LineDelta(x, y) => {
+            println!("{:?} {:?}", x, y);
             if y > 0.0 { 1.1 } else { 0.9 }
         }
         MouseScrollDelta::PixelDelta(pos) => {
+            println!("pixel: {:?} {:?}", pos.x, pos.y);
             if pos.y > 0.0 { 1.1 } else { 0.9 }
         }
     };
 
+    println!("{:?}", phase);
     match phase {
-        TouchPhase::Moved => {
+        TouchPhase::Ended => {
             Some(zoom_factor)
         }
         _ => {
@@ -98,6 +112,7 @@ fn handle_zoom(delta: MouseScrollDelta, phase: TouchPhase) -> Option<f64> {
 
 
 
+// this can be heavily optimized
 fn render(app: &App, model: &mut Model) {
     let width = model.image.width() as f32;
     let height = model.image.height() as f32;
