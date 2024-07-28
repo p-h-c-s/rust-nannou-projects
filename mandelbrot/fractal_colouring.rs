@@ -11,10 +11,9 @@
 // int colorI = (int)(Math.Sqrt(i + 10 - smoothed) * gradient.Scale) % colors.Length;
 // Color color = colors[colorI];
 
-use std::ops::Div;
 
-use nannou::prelude::*;
-use num::{integer::Roots, Complex};
+use nannou::{color::float, prelude::*};
+use num::{complex::ComplexFloat, integer::Roots, Complex};
 use nannou::image::Rgba;
 
 pub const ARRAY_SIZE: usize = 2048;
@@ -110,7 +109,8 @@ pub fn create_color_array() -> Vec<Rgba<u8>> {
 /// Inspired by: https://stackoverflow.com/questions/16500656/which-color-gradient-is-used-to-color-mandelbrot-in-wikipedia
 #[inline]
 pub fn get_interpolated_color(colors: &Vec<Rgba<u8>>, iterations: usize, z: Complex<f64>) -> Rgba<u8> {
-    let smoothed = (z.re * z.re + z.im * z.im).log2().div(2.0).log2();
-    let idx = (((iterations as f64 - smoothed).sqrt()) * 256.0) % 2048.0;
+    let l2: f64 = 2.0;
+    let smoothed = iterations as f64 + 1.0 - z.abs().log10().log10()/(l2.log10());
+    let idx = ((smoothed) * 256.0) % 2048.0;
     colors[idx as usize]
 }
