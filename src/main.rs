@@ -16,7 +16,7 @@ const MIN_X: f64 = -2.00;
 const MAX_X: f64 = 0.47;
 const MIN_Y: f64 = -1.12;
 const MAX_Y: f64 = 1.12;
-const MAX_ITER: usize = 50;
+const MAX_ITER: usize = 150;
 
 struct Model {
     _window: WindowId,
@@ -59,7 +59,7 @@ fn model(app: &App) -> Model {
         .unwrap();
 
     // The dimensions here define the resolution of the image. Higher = more expensive rendering
-    let image = DynamicImage::new_rgb8(800, 800);
+    let image = DynamicImage::new_rgb8(480, 480);
     let mut model = Model {
         _window,
         image,
