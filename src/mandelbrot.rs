@@ -2,11 +2,11 @@ use num::Complex;
 use super::MAX_ITER;
 
 #[inline]
-fn iterate_mandelbrot(last_n: Complex<f32>, constant: Complex<f32>) -> Complex<f32> {
+fn iterate_mandelbrot(last_n: Complex<f64>, constant: Complex<f64>) -> Complex<f64> {
     last_n * last_n + constant
 }
 
-pub fn is_in_set(constant: Complex<f32>) -> (bool, usize) {
+pub fn is_in_set(constant: Complex<f64>) -> (bool, usize) {
     let mut start = Complex::new(0.0, 0.0);
     for i in 0..MAX_ITER {
         start = iterate_mandelbrot(start, constant);

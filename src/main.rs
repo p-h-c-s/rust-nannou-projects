@@ -12,27 +12,27 @@ fn main() {
 
 // boundaries of the complex plane so the set is nicely visible. Taken from https://en.wikipedia.org/wiki/Mandelbrot_set
 // These values represent our view of the original image plane. So the points in the image buffer are mapped to these ranges
-const MIN_X: f32 = -2.00;
-const MAX_X: f32 = 0.47;
-const MIN_Y: f32 = -1.12;
-const MAX_Y: f32 = 1.12;
+const MIN_X: f64 = -2.00;
+const MAX_X: f64 = 0.47;
+const MIN_Y: f64 = -1.12;
+const MAX_Y: f64 = 1.12;
 const MAX_ITER: usize = 50;
 
 struct Model {
     _window: WindowId,
     image: DynamicImage,
     zoom: f64,
-    center: Point2,
+    center: DVec2, // f64 equivalent to Point2
 }
 
 impl Model {
     // this can be heavily optimized
     fn render(&mut self) {
-        let width = self.image.width() as f32;
-        let height = self.image.height() as f32;
+        let width = self.image.width() as f64;
+        let height = self.image.height() as f64;
 
-        let dx = (MAX_X - MIN_X) / self.zoom as f32;
-        let dy = (MAX_Y - MIN_Y) / self.zoom as f32;
+        let dx = (MAX_X - MIN_X) / self.zoom as f64;
+        let dy = (MAX_Y - MIN_Y) / self.zoom as f64;
 
         // Centers the new view in the existing center point
         let min_x = self.center.x - dx / 2.0;
@@ -41,8 +41,8 @@ impl Model {
         let max_y = self.center.y + dy / 2.0;
 
         for (x, y, pixel) in self.image.as_mut_rgb8().unwrap().enumerate_pixels_mut() {
-            let fx = map_range(x as f32, 0.0, width, min_x, max_x);
-            let fy = map_range(y as f32, 0.0, height, min_y, max_y);
+            let fx = map_range(x as f64, 0.0, width, min_x, max_x);
+            let fy = map_range(y as f64, 0.0, height, min_y, max_y);
             let color = mandelbrot_color_mapping(fx, fy);
             *pixel = nannou::image::Rgb([color.0[0], color.0[1], color.0[2]]);
         }
@@ -64,7 +64,7 @@ fn model(app: &App) -> Model {
         _window,
         image,
         zoom: 1.0,
-        center: Point2::new((MIN_X + MAX_X) / 2.0, (MIN_Y + MAX_Y) / 2.0),
+        center: DVec2::new((MIN_X + MAX_X) / 2.0, (MIN_Y + MAX_Y) / 2.0),
     };
     model.render();
     model
@@ -79,8 +79,8 @@ fn event(app: &App, model: &mut Model, event: Event) {
             match w_event {
                 WindowEvent::MousePressed(button) => {
                     let mouse_pos = app.mouse.position();
-                    let image_width = model.image.width() as f32;
-                    let image_height = model.image.height() as f32;
+                    let image_width = model.image.width() as f64;
+                    let image_height = model.image.height() as f64;
 
                     // Convert mouse position to image coordinates. The mouse position are associated to the original cartesian plane in window
                     let image_x = map_range(
@@ -99,13 +99,13 @@ fn event(app: &App, model: &mut Model, event: Event) {
                     );
 
                     // Convert image coordinates to complex plane coordinates
-                    let dx = (MAX_X - MIN_X) / model.zoom as f32;
-                    let dy = (MAX_Y - MIN_Y) / model.zoom as f32;
+                    let dx = (MAX_X - MIN_X) / model.zoom as f64;
+                    let dy = (MAX_Y - MIN_Y) / model.zoom as f64;
                     let new_x = model.center.x + (image_x / image_width - 0.5) * dx;
                     let new_y = model.center.y + (image_y / image_height - 0.5) * dy;
 
                     // Update center and zoom
-                    model.center = Point2::new(new_x, new_y);
+                    model.center = DVec2::new(new_x, new_y);
                     match button {
                         MouseButton::Left => model.zoom *= 2.0,  // Zoom in
                         MouseButton::Right => model.zoom /= 2.0, // Zoom out
@@ -122,7 +122,7 @@ fn event(app: &App, model: &mut Model, event: Event) {
 
 
 
-fn mandelbrot_color_mapping(x: f32, y: f32) -> Rgba<u8> {
+fn mandelbrot_color_mapping(x: f64, y: f64) -> Rgba<u8> {
     match mandelbrot::is_in_set(Complex::new(x, y)) {
         (true, _) => {
             return Rgba([0, 0, 0, 255]);
