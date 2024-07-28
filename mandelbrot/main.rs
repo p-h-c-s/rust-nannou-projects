@@ -23,14 +23,14 @@ const MAX_Y: f64 = 1.12;
 /// IMAGE_RESOLUTION defines the number of pixels in the x and y direction of the rendered image.
 /// Low values of MAX_ITER creates less detailed fractals
 const MAX_ITER: usize = 150;
-const IMAGE_RESOLUTION: (u32, u32) = (480, 480);
+const IMAGE_RESOLUTION: (u32, u32) = (1920, 1080);
 
 struct Model {
     _window: WindowId,
     image: DynamicImage,
     zoom: f64,
     center: DVec2, // f64 equivalent to Point2
-    colors: [(u8, u8, u8); fractal_colouring::ARRAY_SIZE]
+    colors: Vec<Rgba<u8>>
 }
 
 impl Model {
@@ -72,7 +72,7 @@ fn model(app: &App) -> Model {
         image,
         zoom: 1.0,
         center: DVec2::new((MIN_X + MAX_X) / 2.0, (MIN_Y + MAX_Y) / 2.0),
-        colors: fractal_colouring::interpolate_colors()
+        colors: fractal_colouring::create_color_array()
     };
     model.render();
     model
@@ -128,23 +128,14 @@ fn event(app: &App, model: &mut Model, event: Event) {
     }
 }
 
-fn mandelbrot_color_mapping(x: f64, y: f64, colors: &[(u8, u8, u8)]) -> Rgba<u8> {
+fn mandelbrot_color_mapping(x: f64, y: f64, colors: &Vec<Rgba<u8>>) -> Rgba<u8> {
     match mandelbrot::is_in_set(Complex::new(x, y)) {
         (true, _) => {
             return Rgba([0, 0, 0, 255]);
         }
         (false, it) => {
-            // if it <= 10 {
-            //     let r = 0;
-            //     let g = map_range(it, 0, 10, 156.0, 255.0) as u8;
-            //     let b = 0;
-            //     return Rgba([r, g, b, 255]);
-            // }
-            // let r = 0;
-            // let g = 0;
-            // let b = map_range(it, 0, 50, 156.0, 255.0) as u8;
-            let (r, g, b) = fractal_colouring::get_interpolated_color(colors, it);
-            return Rgba([r, g, b, 255]);
+            let rgb = fractal_colouring::get_interpolated_color(colors, it);
+            return rgb
         }
     }
 }
