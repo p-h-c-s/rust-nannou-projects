@@ -16,7 +16,13 @@ const MIN_X: f64 = -2.00;
 const MAX_X: f64 = 0.47;
 const MIN_Y: f64 = -1.12;
 const MAX_Y: f64 = 1.12;
+
+/// Quality x Performance settings.
+/// MAX_ITER defines the amount of computation to be done per point to assess set belonging.
+/// IMAGE_RESOLUTION defines the number of pixels in the x and y direction of the rendered image.
+/// Low values of MAX_ITER creates a less detailed fractals
 const MAX_ITER: usize = 150;
+const IMAGE_RESOLUTION: (u32, u32) = (480, 480);
 
 struct Model {
     _window: WindowId,
@@ -59,7 +65,7 @@ fn model(app: &App) -> Model {
         .unwrap();
 
     // The dimensions here define the resolution of the image. Higher = more expensive rendering
-    let image = DynamicImage::new_rgb8(480, 480);
+    let image = DynamicImage::new_rgb8(IMAGE_RESOLUTION.0, IMAGE_RESOLUTION.1);
     let mut model = Model {
         _window,
         image,
