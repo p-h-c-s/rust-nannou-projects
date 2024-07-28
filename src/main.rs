@@ -12,6 +12,7 @@ fn main() {
 }
 
 // boundaries of the complex plane so the set is nicely visible. Taken from https://en.wikipedia.org/wiki/Mandelbrot_set
+// These valuse represent our view of the original image plane. So the points in the image buffer are mapped to these ranges
 const MIN_X: f32 = -2.00;
 const MAX_X: f32 = 0.47;
 const MIN_Y: f32 = -1.12;
@@ -26,8 +27,6 @@ struct Model {
 }
 
 fn model(app: &App) -> Model {
-    // nannou continuously tries to draw the texture from the rendered image by calling "view" for each frame
-    // Wait mode only redraws when an event happens
     app.set_loop_mode(LoopMode::wait());
     let window = app
         .new_window()
@@ -35,7 +34,9 @@ fn model(app: &App) -> Model {
         .view(view)
         .build()
         .unwrap();
-    let image = DynamicImage::new_rgb8(800, 800); // Adjust size as needed
+
+    // The dimensions here define the resolution of the image. Higher = more expensive rendering
+    let image = DynamicImage::new_rgb8(800, 800);
     let mut model = Model {
         window,
         image,
@@ -49,23 +50,38 @@ fn model(app: &App) -> Model {
 
 fn event(app: &App, model: &mut Model, event: Event) {
     match event {
-        Event::WindowEvent { id: _, simple: Some(w_event) } => {
+        Event::WindowEvent {
+            id: _,
+            simple: Some(w_event),
+        } => {
             match w_event {
                 WindowEvent::MousePressed(button) => {
                     let mouse_pos = app.mouse.position();
                     let image_width = model.image.width() as f32;
                     let image_height = model.image.height() as f32;
-                    
-                    // Convert mouse position to image coordinates
-                    let image_x = map_range(mouse_pos.x, -app.window_rect().w()/2.0, app.window_rect().w()/2.0, 0.0, image_width);
-                    let image_y = map_range(mouse_pos.y, -app.window_rect().h()/2.0, app.window_rect().h()/2.0, image_height, 0.0);
-                    
+
+                    // Convert mouse position to image coordinates. The mouse position are associated to the original cartesian plane in window
+                    let image_x = map_range(
+                        mouse_pos.x,
+                        -app.window_rect().w() / 2.0,
+                        app.window_rect().w() / 2.0,
+                        0.0,
+                        image_width,
+                    );
+                    let image_y = map_range(
+                        mouse_pos.y,
+                        -app.window_rect().h() / 2.0,
+                        app.window_rect().h() / 2.0,
+                        image_height,
+                        0.0,
+                    );
+
                     // Convert image coordinates to complex plane coordinates
                     let dx = (MAX_X - MIN_X) / model.zoom as f32;
                     let dy = (MAX_Y - MIN_Y) / model.zoom as f32;
                     let new_x = model.center.x + (image_x / image_width - 0.5) * dx;
                     let new_y = model.center.y + (image_y / image_height - 0.5) * dy;
-                    
+
                     // Update center and zoom
                     model.center = Point2::new(new_x, new_y);
                     match button {
@@ -73,7 +89,7 @@ fn event(app: &App, model: &mut Model, event: Event) {
                         MouseButton::Right => model.zoom /= 2.0, // Zoom out
                         _ => {}
                     }
-                    
+
                     render(app, model);
                 }
                 _ => {}
@@ -88,10 +104,11 @@ fn event(app: &App, model: &mut Model, event: Event) {
 fn render(app: &App, model: &mut Model) {
     let width = model.image.width() as f32;
     let height = model.image.height() as f32;
-    
+
     let dx = (MAX_X - MIN_X) / model.zoom as f32;
     let dy = (MAX_Y - MIN_Y) / model.zoom as f32;
-    
+
+    // Centers the new view in the existing center point
     let min_x = model.center.x - dx / 2.0;
     let max_x = model.center.x + dx / 2.0;
     let min_y = model.center.y - dy / 2.0;
@@ -100,12 +117,12 @@ fn render(app: &App, model: &mut Model) {
     for (x, y, pixel) in model.image.as_mut_rgb8().unwrap().enumerate_pixels_mut() {
         let fx = map_range(x as f32, 0.0, width, min_x, max_x);
         let fy = map_range(y as f32, 0.0, height, min_y, max_y);
-        let color = color_function(fx, fy);
+        let color = mandelbrot_color_mapping(fx, fy);
         *pixel = nannou::image::Rgb([color.0[0], color.0[1], color.0[2]]);
     }
 }
 
-fn color_function(x: f32, y: f32) -> Rgba<u8> {
+fn mandelbrot_color_mapping(x: f32, y: f32) -> Rgba<u8> {
     match mandelbrot::is_in_set(Complex::new(x, y)) {
         (true, _) => {
             return Rgba([0, 0, 0, 255]);
@@ -122,7 +139,6 @@ fn color_function(x: f32, y: f32) -> Rgba<u8> {
 fn view(app: &App, model: &Model, frame: Frame) {
     let draw = app.draw();
     draw.background().color(DARKBLUE);
-    // render(app, model);
 
     let texture = wgpu::Texture::from_image(app, &model.image);
     draw.texture(&texture)

@@ -1,7 +1,4 @@
-use num::{
-    complex::{self, ComplexFloat},
-    Complex,
-};
+use num::Complex;
 
 #[inline]
 fn iterate_mandelbrot(last_n: Complex<f32>, constant: Complex<f32>) -> Complex<f32> {
@@ -38,8 +35,8 @@ mod tests {
         let answer_in_set = is_in_set(Complex::new(0.0, 1.0));
         let answer_not_in_set = is_in_set(Complex::new(0.0, 2.0));
 
-        assert_eq!(answer_in_set, true);
-        assert_eq!(answer_not_in_set, false);
+        assert!(matches!(answer_in_set, (true, _)));
+        assert!(matches!(answer_not_in_set, (false, _)));
     }
 
     #[test]
