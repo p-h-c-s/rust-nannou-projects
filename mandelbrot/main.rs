@@ -61,7 +61,7 @@ fn model(app: &App) -> Model {
     app.set_loop_mode(LoopMode::wait());
     let _window = app
         .new_window()
-        .size(1000, 1000)
+        .size(1600, 1600)
         .view(view)
         .build()
         .unwrap();
@@ -130,11 +130,11 @@ fn event(app: &App, model: &mut Model, event: Event) {
 
 fn mandelbrot_color_mapping(x: f64, y: f64, colors: &Vec<Rgba<u8>>) -> Rgba<u8> {
     match mandelbrot::is_in_set(Complex::new(x, y)) {
-        (true, _) => {
+        (true, _, _) => {
             return Rgba([0, 0, 0, 255]);
         }
-        (false, it) => {
-            let rgb = fractal_colouring::get_interpolated_color(colors, it);
+        (false, it, complex_n) => {
+            let rgb = fractal_colouring::get_interpolated_color(colors, it, complex_n);
             return rgb
         }
     }

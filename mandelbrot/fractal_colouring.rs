@@ -5,14 +5,16 @@
 // Position = 0.6425  Color = (255, 170,   0)
 // Position = 0.8575  Color = (  0,   2,   0)
 
-// This module needs to cubic interpolate between these points and generate a 2048 sized array of colors
+// This module needs to monotonic cubic interpolate between these points and generate a 2048 sized array of colors
 //
 // double smoothed = Math.Log2(Math.Log2(re * re + im * im) / 2);  // log_2(log_2(|p|))
 // int colorI = (int)(Math.Sqrt(i + 10 - smoothed) * gradient.Scale) % colors.Length;
 // Color color = colors[colorI];
 
+use std::ops::Div;
+
 use nannou::prelude::*;
-use num::integer::Roots;
+use num::{integer::Roots, Complex};
 use nannou::image::Rgba;
 
 pub const ARRAY_SIZE: usize = 2048;
@@ -104,8 +106,11 @@ pub fn create_color_array() -> Vec<Rgba<u8>> {
     colors
 }
 
+
+/// Inspired in: https://stackoverflow.com/questions/16500656/which-color-gradient-is-used-to-color-mandelbrot-in-wikipedia
 #[inline]
-pub fn get_interpolated_color(colors: &Vec<Rgba<u8>>, iterations: usize) -> Rgba<u8> {
-    let idx = (((iterations + 10).sqrt() as f64) * 256.0) % 2048.0;
+pub fn get_interpolated_color(colors: &Vec<Rgba<u8>>, iterations: usize, z: Complex<f64>) -> Rgba<u8> {
+    let smoothed = (z.re * z.re + z.im * z.im).log2().div(2.0).log2();
+    let idx = (((iterations as f64 - smoothed).sqrt()) * 256.0) % 2048.0;
     colors[idx as usize]
 }

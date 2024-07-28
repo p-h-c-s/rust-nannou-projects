@@ -6,15 +6,15 @@ fn iterate_mandelbrot(last_n: Complex<f64>, constant: Complex<f64>) -> Complex<f
     last_n * last_n + constant
 }
 
-pub fn is_in_set(constant: Complex<f64>) -> (bool, usize) {
+pub fn is_in_set(constant: Complex<f64>) -> (bool, usize, Complex<f64>) {
     let mut start = Complex::new(0.0, 0.0);
     for i in 0..MAX_ITER {
         start = iterate_mandelbrot(start, constant);
         if start.norm_sqr() > 4.0 {
-            return (false, i);
+            return (false, i, start);
         }
     }
-    (true, MAX_ITER-1)
+    (true, MAX_ITER-1, start)
 }
 
 #[cfg(test)]
@@ -27,7 +27,7 @@ mod tests {
         let answer_in_set = is_in_set(Complex::new(0.0, 1.0));
         let answer_not_in_set = is_in_set(Complex::new(0.0, 2.0));
 
-        assert!(matches!(answer_in_set, (true, _)));
-        assert!(matches!(answer_not_in_set, (false, _)));
+        assert!(matches!(answer_in_set, (true, _, _)));
+        assert!(matches!(answer_not_in_set, (false, _, _)));
     }
 }
