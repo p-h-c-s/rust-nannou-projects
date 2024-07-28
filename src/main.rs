@@ -4,7 +4,6 @@ use nannou::image::{DynamicImage, GenericImageView, RgbImage, Rgba};
 use nannou::prelude::*;
 use nannou::winit::event::{Touch, TouchPhase};
 use num::Complex;
-use window::MouseMovedFn;
 
 pub mod mandelbrot;
 
@@ -36,7 +35,7 @@ fn model(app: &App) -> Model {
         .view(view)
         .build()
         .unwrap();
-    let image = DynamicImage::new_rgb8(1000, 1000); // Adjust size as needed
+    let image = DynamicImage::new_rgb8(800, 800); // Adjust size as needed
     let mut model = Model {
         window,
         image,

@@ -10,7 +10,7 @@ fn iterate_mandelbrot(last_n: Complex<f32>, constant: Complex<f32>) -> Complex<f
 
 pub fn is_in_set(constant: Complex<f32>) -> (bool, usize) {
     let mut start = Complex::new(0.0, 0.0);
-    for i in 0..100 {
+    for i in 0..50 {
         start = iterate_mandelbrot(start, constant);
         if start.norm_sqr() > 4.0 {
             return (false, i);
