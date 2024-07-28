@@ -107,7 +107,7 @@ pub fn create_color_array() -> Vec<Rgba<u8>> {
 }
 
 
-/// Inspired in: https://stackoverflow.com/questions/16500656/which-color-gradient-is-used-to-color-mandelbrot-in-wikipedia
+/// Inspired by: https://stackoverflow.com/questions/16500656/which-color-gradient-is-used-to-color-mandelbrot-in-wikipedia
 #[inline]
 pub fn get_interpolated_color(colors: &Vec<Rgba<u8>>, iterations: usize, z: Complex<f64>) -> Rgba<u8> {
     let smoothed = (z.re * z.re + z.im * z.im).log2().div(2.0).log2();

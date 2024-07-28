@@ -14,4 +14,4 @@ Example:
 cargo run --release mandelbrot
 ```
 
-![Mandelbrot](assets/mandelbrot.png)
+![Mandelbrot](assets/mbrot.png)

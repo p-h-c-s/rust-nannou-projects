@@ -5,5 +5,5 @@ You can zoom into the set by right-clicking, and unzoom by left-clicking.
 
 Because of the limitations of f64 arithmetic the set loses resolution quickly when zooming.
 
-![Mandelbrot](../assets/mandelbrot.png)
-![Mandelbrot](../assets/mandelbrot_zoomed.png)
+![Mandelbrot](../assets/mbrot.png)
+![Mandelbrot](../assets/zoomed-mbrot.png)
