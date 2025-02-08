@@ -2,13 +2,15 @@ use std::sync::Arc;
 
 use nannou::color::DARKBLUE;
 use nannou::event::Event;
-use nannou::image::{DynamicImage, GenericImage, GenericImageView, Rgba};
+use nannou::image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Pixel, Rgba};
 use nannou::prelude::*;
+use rayon::prelude::*;
 use num::integer::sqrt;
 use num::Complex;
 
 pub mod fractal_colouring;
 pub mod mandelbrot;
+
 
 fn main() {
     nannou::app(model).event(event).run();
@@ -27,7 +29,7 @@ const MAX_Y: f64 = 1.12;
 /// Low values of MAX_ITER creates less detailed fractals
 const MAX_ITER: usize = 150;
 const IMAGE_RESOLUTION: (u32, u32) = (1920, 1080);
-const CHUNKS_TO_PARALLEL_RENDER: u32 = 9;
+const CHUNKS_TO_PARALLEL_RENDER: u32 = 1;
 
 
 struct Model {
@@ -43,7 +45,6 @@ impl Model {
     fn render(&mut self) {
         let width = self.image.width() as f64;
         let height = self.image.height() as f64;
-        println!("{width}");
 
         let dx = (MAX_X - MIN_X) / self.zoom as f64;
         let dy = (MAX_Y - MIN_Y) / self.zoom as f64;
@@ -71,51 +72,59 @@ impl Model {
 
 
         // x and y are known. We can manually get the pixes and paralellze the image
-        let pixel_range = split_pixel_range(width as u32, height as u32, CHUNKS_TO_PARALLEL_RENDER);
+        // let pixel_range = split_pixel_range(width as u32, height as u32, CHUNKS_TO_PARALLEL_RENDER);
 
-        let mut image_ref = Arc::new(self.image);
-        for range in pixel_range {
-            let starting_point = range.0;
-            let end_point = range.1;
-            for x in starting_point.0..end_point.0 {
-                for y in starting_point.1..end_point.1 {
-                    iterate_image(&mut image_ref, x, y, width, height, min_x, min_y, max_x, max_y, &self.colors);
-                }
-            }
-        }
+        // CHUNKS_TO_PARALLEL_RENDER must be divisible by 4 to avoid disrupting the RGBA structure
+        // 4 bytes per pixel
+        let chunk_size_bytes = (((IMAGE_RESOLUTION.0 * IMAGE_RESOLUTION.1) / CHUNKS_TO_PARALLEL_RENDER) * 4) as usize;
+        let image  = self.image.as_mut_rgba8().unwrap();
+        
+        image.par_chunks_mut(chunk_size_bytes).enumerate().for_each(|(chunk_index, chunk)| {
+            chunk.chunks_exact_mut(4).enumerate().for_each(|(pixel_index, pixel)| {
+                let pixel_index = (chunk_index+1) * pixel_index;
+                let pixel_point = (pixel_index % width as usize, pixel_index / width as usize);
+                // println!("indexes: {chunk_index}|{pixel_index}|{pixel_point:?}");
+                let iterated_pixel = iterate_image(pixel_point.0, pixel_point.1, width, height, min_x, min_y, max_x, max_y, &self.colors);
+                pixel[0] = iterated_pixel[0];
+                pixel[1] = iterated_pixel[1];
+                pixel[2] = iterated_pixel[2];
+                pixel[3] = iterated_pixel[3];
+            });
+
+        });
     }
 
 
 } 
 
-fn iterate_image(image: &mut DynamicImage, x: u32, y: u32, width: f64, height: f64, min_x:f64, min_y: f64, max_x: f64, max_y: f64, colors: &Vec<Rgba<u8>>) {
+fn iterate_image(x: usize, y: usize, width: f64, height: f64, min_x:f64, min_y: f64, max_x: f64, max_y: f64, colors: &Vec<Rgba<u8>>) -> Rgba<u8> {
     let fx = map_range(x as f64, 0.0, width, min_x, max_x);
     let fy = map_range(y as f64, 0.0, height, min_y, max_y);
     let color = mandelbrot_color_mapping(fx, fy, colors);
     // let pixel = self.image.get_pixel(x,  y);
     let pixel = nannou::image::Rgba([color.0[0], color.0[1], color.0[2], 1]);
-    image.put_pixel(x, y, pixel);
+    return pixel
 }
 // Splits a x,y space into chunks of equal ranges. chunks parameter square root must be a whole number
 // Logic: each boundary starting point is (n * x_b, m * y_b). n is the column number, m the row number of the chunks matrix
 // x_b is the chunk boundary horizontal size, and y_b is the chunk boundary vertical size
 // Each starting point gets summed to (x_b, y_b), representing the diagonal
 // The splitting doesn't need to be in equal squares. I realized that after implementing this. You can "serialize" the image and split it in a single buffer
-fn split_pixel_range(x: u32, y: u32, chunks: u32) -> Vec<((u32, u32), (u32, u32))> {
-    let mut output: Vec<((u32, u32), (u32, u32))> = Vec::new();
-    let chunk_matrix_end = sqrt(chunks);
-    let x_boundary = x / chunk_matrix_end;
-    let y_boundary = y / chunk_matrix_end;
-    let diag_sum = (x_boundary, y_boundary);
-    for n in 0..chunk_matrix_end {
-        for m in 0..chunk_matrix_end {
-            let starting_point = ((n * x_boundary), (m * y_boundary));
-            let end_point = ((starting_point.0 + diag_sum.0), (starting_point.1 + diag_sum.1));
-            output.push((starting_point, end_point));
-        }
-    }
-    return output
-}
+// fn split_pixel_range(x: u32, y: u32, chunks: u32) -> Vec<((u32, u32), (u32, u32))> {
+//     let mut output: Vec<((u32, u32), (u32, u32))> = Vec::new();
+//     let chunk_matrix_end = sqrt(chunks);
+//     let x_boundary = x / chunk_matrix_end;
+//     let y_boundary = y / chunk_matrix_end;
+//     let diag_sum = (x_boundary, y_boundary);
+//     for n in 0..chunk_matrix_end {
+//         for m in 0..chunk_matrix_end {
+//             let starting_point = ((n * x_boundary), (m * y_boundary));
+//             let end_point = ((starting_point.0 + diag_sum.0), (starting_point.1 + diag_sum.1));
+//             output.push((starting_point, end_point));
+//         }
+//     }
+//     return output
+// }
 
 fn model(app: &App) -> Model {
     app.set_loop_mode(LoopMode::wait());
@@ -126,7 +135,7 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    let image = DynamicImage::new_rgb8(IMAGE_RESOLUTION.0, IMAGE_RESOLUTION.1);
+    let image = DynamicImage::new_rgba8(IMAGE_RESOLUTION.0, IMAGE_RESOLUTION.1);
     let mut model = Model {
         _window,
         image,
@@ -206,14 +215,14 @@ fn view(app: &App, model: &Model, frame: Frame) {
     draw.to_frame(app, &frame).unwrap();
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
 
-    #[test]
-    fn test_split_pixel_range() {
-        // let image = DynamicImage::new_rgb8(IMAGE_RESOLUTION.0, IMAGE_RESOLUTION.1);
-        let res = split_pixel_range(IMAGE_RESOLUTION.0, IMAGE_RESOLUTION.1, 4);
-        // println!("{res:?}");
-    }
-}
+//     #[test]
+//     fn test_split_pixel_range() {
+//         // let image = DynamicImage::new_rgb8(IMAGE_RESOLUTION.0, IMAGE_RESOLUTION.1);
+//         let res = split_pixel_range(IMAGE_RESOLUTION.0, IMAGE_RESOLUTION.1, 4);
+//         // println!("{res:?}");
+//     }
+// }
