@@ -90,6 +90,7 @@ fn cubic_hermite(
     )
 }
 
+// Ultra fractal control points
 pub fn create_color_array() -> Vec<Rgba<u8>> {
     let control_points = vec![
         ControlPoint {
