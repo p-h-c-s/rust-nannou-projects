@@ -29,7 +29,7 @@ const MAX_Y: f64 = 1.12;
 /// Low values of MAX_ITER creates less detailed fractals
 const MAX_ITER: usize = 150;
 const IMAGE_RESOLUTION: (u32, u32) = (1920, 1080);
-const CHUNKS_TO_PARALLEL_RENDER: u32 = 4;
+const CHUNKS_TO_PARALLEL_RENDER: u32 = 8;
 
 
 struct Model {
@@ -41,7 +41,6 @@ struct Model {
 }
 
 impl Model {
-    // this can be heavily parallelized if we split the image into chunks
     fn render(&mut self) {
         let width = self.image.width() as f64;
         let height = self.image.height() as f64;
@@ -56,15 +55,14 @@ impl Model {
         let max_y = self.center.y + dy / 2.0;
 
         // CHUNKS_TO_PARALLEL_RENDER must be divisible by 4 to avoid disrupting the RGBA structure
-        // 4 bytes per pixel
         let chunk_size_bytes = (((IMAGE_RESOLUTION.0 * IMAGE_RESOLUTION.1) / CHUNKS_TO_PARALLEL_RENDER) * 4) as usize;
         let image  = self.image.as_mut_rgba8().unwrap();
         
         image.par_chunks_mut(chunk_size_bytes).enumerate().for_each(|(chunk_index, chunk)| {
+            let chunk_start_pixel_index = (chunk_index * chunk_size_bytes) / 4;
             chunk.chunks_exact_mut(4).enumerate().for_each(|(pixel_index, pixel)| {
-                let pixel_index = (chunk_index+1) * pixel_index;
+                let pixel_index = chunk_start_pixel_index + pixel_index;
                 let pixel_point = (pixel_index % width as usize, pixel_index / width as usize);
-                // println!("indexes: {chunk_index}|{pixel_index}|{pixel_point:?}");
                 let iterated_pixel = iterate_image(pixel_point.0, pixel_point.1, width, height, min_x, min_y, max_x, max_y, &self.colors);
                 pixel[0] = iterated_pixel[0];
                 pixel[1] = iterated_pixel[1];
